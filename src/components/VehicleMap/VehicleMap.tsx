@@ -1,44 +1,58 @@
-import { createEffect, onCleanup, onMount } from 'solid-js';
-import type { Marker } from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { Component, createEffect, onCleanup, onMount } from 'solid-js';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 type Vehicle = {
   name: string;
-  id: string;
+  id: number;
   latitude: number;
   longitude: number;
 };
 
 interface VehicleMapProps {
   vehicles: Vehicle[];
-  onVehicleClick: (vehicleId: string) => void;
+  onVehicleClick: (vehicleId: number) => void;
 }
 
-const VehicleMap = (props: VehicleMapProps) => {
+const getAverageCoordinates = (vehicles: Vehicle[]): [number, number] => {
+  if (vehicles.length === 0) return [0, 0];
+
+  const total = vehicles.reduce((acc, vehicle) => {
+    acc.lat += vehicle.latitude;
+    acc.lon += vehicle.longitude;
+    return acc;
+  }, { lat: 0, lon: 0 });
+
+  return [total.lat / vehicles.length, total.lon / vehicles.length];
+}
+
+const VehicleMap: Component<VehicleMapProps> = (props) => {
   let mapContainer: HTMLDivElement | undefined;
-  let map: L.Map | null;
-  let markersMap: Map<string, Marker> = new Map();
+  let map: L.Map | undefined;
+  let markersMap: Map<number, L.Marker> = new Map();
 
   onMount(() => {
-    if (!mapContainer) return;
-    map = L.map(mapContainer).setView([0, 0], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    if (mapContainer) {
+      map = L.map(mapContainer).setView(getAverageCoordinates(props.vehicles), 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+    }
   });
 
   createEffect(() => {
-    if (!map) return; // Ensure map is initialized
+    if (!map) return;
 
-    // Clear existing markers
     markersMap.forEach((marker) => {
       marker.remove();
     });
     markersMap.clear();
 
-    // Add new markers
     props.vehicles.forEach(vehicle => {
+      if (!map) {
+        return;
+      }
+
       const marker = L.marker([vehicle.latitude, vehicle.longitude], {
         title: vehicle.name
       }).addTo(map);
@@ -46,7 +60,9 @@ const VehicleMap = (props: VehicleMapProps) => {
       marker.bindTooltip(vehicle.name, { permanent: true });
       marker.on('click', () => {
         props.onVehicleClick(vehicle.id);
-        map.setView([vehicle.latitude, vehicle.longitude], map.getZoom());
+        if (map) {
+          map.setView([vehicle.latitude, vehicle.longitude], map.getZoom());
+        }
       });
 
       markersMap.set(vehicle.id, marker);

@@ -1,0 +1,23 @@
+{
+  "extends": [
+    "solid/typescript",
+    "plugin:prettier/recommended" // Makes sure eslint and prettier don't conflict
+  ],
+  "plugins": ["solid"],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "rules": {
+    // Define your project-specific rules here
+    "solid/reactivity": "error",
+    "solid/no-destructure": "warn",
+    "solid/jsx-no-undef": "error",
+    // Example custom rule
+    "no-unused-vars": "warn"
+  }
+}
